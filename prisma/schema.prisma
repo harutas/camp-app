@@ -1,0 +1,14 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // アプリ実行時の接続。Supabase の「プーラー（Supavisor, Transaction mode, port 6543）」経由。
+  // Vercel のサーバーレス関数はリクエストごとに起動・終了するため、
+  // Postgres に直接つなぐと接続数がすぐ上限に達する。プーラーが接続を束ねてくれる。
+  url       = env("DATABASE_URL")
+  // マイグレーション用の直接接続（port 5432）。
+  // Transaction mode のプーラーではマイグレーションに必要な機能（セッション単位のロック等）が使えないため分ける。
+  directUrl = env("DIRECT_URL")
+}
