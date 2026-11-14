@@ -1,0 +1,3 @@
+# Prettier は .gitignore も自動で参照する。ここではそれ以外の除外を書く
+pnpm-lock.yaml
+prisma/migrations
