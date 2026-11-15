@@ -7,10 +7,14 @@ import {
   getSessionStatus,
   shouldTouchSession,
 } from "./session-expiry";
-import { generateSessionToken } from "./token";
+import { generateSessionToken, hashSessionToken } from "./token";
+
+// トークンの扱い：Cookie には生のトークン、DB の sessions.id にはそのハッシュを入れる。
+// 外から受け取ったトークンは、DB に問い合わせる前に必ず hashSessionToken を通す。
 
 /**
  * セッションを作成し、Cookie に入れるトークンを返す。
+ * 生のトークンを知っているのは、この戻り値を受け取って Cookie に書き込む呼び出し元だけ。
  * あわせて、同じユーザーの期限切れセッションを削除する（Cookie を失った端末の行が残り続けないように）。
  */
 export async function createSession(userId: string) {
@@ -20,7 +24,7 @@ export async function createSession(userId: string) {
   const token = generateSessionToken();
   const session = await prisma.session.create({
     data: {
-      id: token,
+      id: hashSessionToken(token),
       userId,
       expiresAt: calculateExpiresAt(now),
       lastSeenAt: now,
@@ -38,8 +42,10 @@ export async function createSession(userId: string) {
  * その代わり、DB の行を消せばその瞬間にセッションを無効にできる。
  */
 export async function validateSession(token: string) {
+  // ハッシュで検索するため、文字列の比較はDBのインデックス検索になる。
+  // 生のトークンを1文字ずつ比較しないので、比較にかかる時間からトークンを推測される心配（タイミング攻撃）もない
   const session = await prisma.session.findUnique({
-    where: { id: token },
+    where: { id: hashSessionToken(token) },
     include: { user: true },
   });
 
@@ -71,7 +77,7 @@ export async function validateSession(token: string) {
  * セッションを削除する。行がなくてもエラーにしない（ログアウトを何度押しても成功させる）。
  */
 export async function deleteSession(token: string) {
-  await prisma.session.deleteMany({ where: { id: token } });
+  await prisma.session.deleteMany({ where: { id: hashSessionToken(token) } });
 }
 
 /**

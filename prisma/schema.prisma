@@ -61,7 +61,7 @@ model GroupMember {
 // サーバー側でログイン状態を保持するテーブル（ステートフルセッション）。
 // Cookie にはこの行を引くためのトークンだけを入れ、ユーザー情報は DB 側に置く。
 model Session {
-  // Cookie に入れるセッショントークン。この値を知っている人＝ログイン中の本人とみなされる
+  // セッショントークンの SHA-256 ハッシュ（16進数64文字）。生のトークンは Cookie にだけあり、DB には保存しない
   id         String   @id
   userId     String   @map("user_id")
   expiresAt  DateTime @map("expires_at")
