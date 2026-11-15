@@ -2,8 +2,7 @@
 // 誰でも任意のユーザーになりすませるため、本番では絶対に動かしてはいけない。
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { setSessionCookie } from "@/server/auth/cookie";
-import { createSession } from "@/server/auth/session";
+import { signIn } from "@/server/auth/sign-in";
 import { prisma } from "@/server/db";
 
 const bodySchema = z.object({
@@ -28,8 +27,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "ユーザーが見つかりません" }, { status: 404 });
   }
 
-  const { token } = await createSession(user.id);
-  await setSessionCookie(token);
+  await signIn(user.id);
 
   // POST の結果として別ページに移るときは 303 を使う（ブラウザは GET で / を開き直す）
   return NextResponse.redirect(new URL("/", request.url), 303);
