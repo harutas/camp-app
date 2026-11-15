@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { prisma } from "@/server/db";
+import { LiffLogin } from "./liff-login";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
@@ -11,8 +12,12 @@ export default async function LoginPage() {
     <main className="mx-auto max-w-md p-6">
       <h1 className="text-2xl font-bold">ログイン</h1>
 
+      <section className="mt-6">
+        <LiffLogin />
+      </section>
+
       {isDevelopment && (
-        <section className="mt-6">
+        <section className="mt-10">
           <h2 className="text-sm text-muted-foreground">開発用ログイン</h2>
           {/* JS を使わない通常のフォーム送信。押したボタンの value が userId として送られる */}
           <form action="/api/auth/dev" method="post" className="mt-2 flex flex-col gap-2">
