@@ -12,3 +12,63 @@ datasource db {
   // Transaction mode のプーラーではマイグレーションに必要な機能（セッション単位のロック等）が使えないため分ける。
   directUrl = env("DIRECT_URL")
 }
+
+// @@map: モデル名・enum 名 → DB のテーブル名・型名
+// @map : フィールド名・enum の値 → DB のカラム名・値
+// TypeScript 側は camelCase / PascalCase、DB 側は Postgres の慣習に合わせて snake_case にする
+
+model User {
+  id          String        @id @default(uuid())
+  // LINE のユーザーID（IDトークンの sub）。ここに登録された人だけがログインできる（許可リスト）
+  lineUserId  String        @unique @map("line_user_id")
+  displayName String        @map("display_name")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  memberships GroupMember[]
+  sessions    Session[]
+
+  @@map("users")
+}
+
+model Group {
+  id        String        @id @default(uuid())
+  name      String
+  createdAt DateTime      @default(now()) @map("created_at")
+  members   GroupMember[]
+
+  @@map("groups")
+}
+
+// Postgres の enum 型になるため、OWNER / MEMBER 以外の値は DB が拒否する
+enum GroupRole {
+  OWNER  @map("owner")
+  MEMBER @map("member")
+
+  @@map("group_role")
+}
+
+model GroupMember {
+  groupId  String    @map("group_id")
+  userId   String    @map("user_id")
+  role     GroupRole @default(MEMBER)
+  joinedAt DateTime  @default(now()) @map("joined_at")
+  group    Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, userId])
+  @@map("group_members")
+}
+
+// サーバー側でログイン状態を保持するテーブル（ステートフルセッション）。
+// Cookie にはこの行を引くためのトークンだけを入れ、ユーザー情報は DB 側に置く。
+model Session {
+  // Cookie に入れるセッショントークン。この値を知っている人＝ログイン中の本人とみなされる
+  id         String   @id
+  userId     String   @map("user_id")
+  expiresAt  DateTime @map("expires_at")
+  lastSeenAt DateTime @map("last_seen_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
