@@ -16,8 +16,8 @@ export async function signIn(userId: string) {
     await deleteSession(currentToken);
   }
 
-  const { token } = await createSession(userId);
-  await setSessionCookie(token);
+  const { token, session } = await createSession(userId);
+  await setSessionCookie(token, session.expiresAt);
 }
 
 /**
