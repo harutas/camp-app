@@ -13,8 +13,8 @@
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
-    "db:deploy:prod": "node --env-file=.env.prod node_modules/prisma/build/index.js migrate deploy",
-    "db:seed:prod": "node --env-file=.env.prod node_modules/prisma/build/index.js db seed",
+    "db:deploy:prod": "PRISMA_ENV_FILE=.env.prod prisma migrate deploy",
+    "db:seed:prod": "PRISMA_ENV_FILE=.env.prod prisma db seed",
     "lint:fix": "eslint --fix",
     "format": "prettier --write . && prisma format",
     "format:check": "prettier --check .",
@@ -52,8 +52,5 @@
     "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.1.0"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
   }
 }
