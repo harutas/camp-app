@@ -83,6 +83,14 @@ export function LiffLogin() {
         return;
       }
 
+      if (response.status === 429) {
+        setStatus({
+          type: "error",
+          message: "ログインの試行回数が多すぎます。しばらく待ってからやり直してください",
+        });
+        return;
+      }
+
       setStatus({ type: "error", message: "ログインに失敗しました" });
     }
 

@@ -4,6 +4,14 @@ import { z } from "zod";
 import { LineIdTokenError, verifyLineIdToken } from "@/server/auth/line";
 import { signIn } from "@/server/auth/sign-in";
 import { prisma } from "@/server/db";
+import { consumeRateLimit, getClientIp } from "@/server/rate-limit";
+
+/**
+ * ログインの試行回数の上限（IP ごと）。
+ * 許可リスト方式なので総当たりで突破される心配は小さいが、LINE の検証 API と DB を無制限に叩かれないようにする。
+ * 家族が普通に使う分（ログインのやり直しを含む）には十分な回数にしている。
+ */
+const LOGIN_RATE_LIMIT = { limit: 10, windowMs: 10 * 60 * 1000 };
 
 const bodySchema = z.object({
   idToken: z.string().min(1),
@@ -31,6 +39,16 @@ function isSameOrigin(request: Request): boolean {
 }
 
 export async function POST(request: Request) {
+  // 回数制限は最初に確認する（Origin を偽装したリクエストや不正なボディも1回として数え、後続の処理まで進ませない）
+  const rateLimit = await consumeRateLimit(`login:${getClientIp(request)}`, LOGIN_RATE_LIMIT);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "ログインの試行回数が多すぎます。しばらく待ってからやり直してください" },
+      // Retry-After：何秒後に再試行してよいかをクライアントに伝える標準のヘッダー
+      { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } },
+    );
+  }
+
   if (!isSameOrigin(request)) {
     return NextResponse.json({ error: "許可されていないリクエストです" }, { status: 403 });
   }

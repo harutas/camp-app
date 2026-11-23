@@ -46,6 +46,19 @@ select cron.schedule(
   $$
 );
 
+-- レート制限の古いカウンターの削除（毎日 04:05 JST）
+-- rate_limits は窓（現状は10分）ごとに行が増え、窓が過ぎた行は判定に使われない。
+-- 窓の幅を将来広げても消しすぎないよう、余裕を持って1日より前の行を消す。
+-- window_start は sessions と同じく timestamp(3)（タイムゾーンなし・UTC）なので UTC に変換した現在時刻と比べる
+select cron.schedule(
+  'cleanup-rate-limits',
+  '5 19 * * *',
+  $$
+    delete from public.rate_limits
+    where window_start < (now() at time zone 'utc') - interval '1 day';
+  $$
+);
+
 -- 確認用のクエリ（必要なときに個別に実行する）：
 --   登録されているジョブ：     select jobid, jobname, schedule, active from cron.job;
 --   直近の実行結果：           select jobid, status, return_message, start_time, end_time
