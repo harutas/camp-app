@@ -81,6 +81,14 @@ export async function deleteSession(token: string) {
 }
 
 /**
+ * ユーザーのセッションをすべて削除する（全端末からログアウト）。
+ * Cookie を失った端末や、なくした端末に残ったセッションも含めて、その瞬間に無効になる。
+ */
+export async function deleteUserSessions(userId: string) {
+  await prisma.session.deleteMany({ where: { userId } });
+}
+
+/**
  * ユーザーの期限切れセッション（絶対期限・アイドル期限のどちらか）をまとめて削除する。
  */
 async function deleteExpiredSessions(userId: string, now: Date) {

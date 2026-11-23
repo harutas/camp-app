@@ -1,28 +1,70 @@
 import { redirect } from "next/navigation";
-import { logout } from "@/app/actions/auth";
+import { logout, logoutEverywhere } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
-import { getSessionToken } from "@/server/auth/cookie";
-import { validateSession } from "@/server/auth/session";
+import { ForbiddenError, UnauthorizedError } from "@/server/auth/errors";
+import { getCurrentGroup } from "@/server/auth/guards";
+import { listGroupMembers } from "@/server/groups";
 
 export default async function Home() {
-  // Server Component はサーバーで実行されるため、ブラウザが自動送信した Cookie をここで読める
-  const token = await getSessionToken();
-  const result = token ? await validateSession(token) : null;
-
-  if (!result) {
-    redirect("/login");
+  let current;
+  try {
+    current = await getCurrentGroup();
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      redirect("/login");
+    }
+    if (error instanceof ForbiddenError) {
+      return (
+        <main className="mx-auto max-w-md p-6">
+          <h1 className="text-2xl font-bold">キャンプ記録</h1>
+          <p className="mt-4">{error.message}</p>
+          <LogoutButtons />
+        </main>
+      );
+    }
+    throw error;
   }
+
+  const members = await listGroupMembers(current.group.id);
 
   return (
     <main className="mx-auto max-w-md p-6">
       <h1 className="text-2xl font-bold">キャンプ記録</h1>
-      <p className="mt-4">{result.user.displayName} さんでログイン中</p>
+      <p className="mt-4">{current.user.displayName} さんでログイン中</p>
+
+      <section className="mt-6">
+        <h2 className="text-lg font-semibold">{current.group.name}</h2>
+        <ul className="mt-2 flex flex-col gap-1">
+          {members.map((member) => (
+            <li key={member.userId} className="flex items-center gap-2">
+              <span>{member.user.displayName}</span>
+              {member.role === "OWNER" && (
+                <span className="text-xs text-muted-foreground">オーナー</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <LogoutButtons />
+    </main>
+  );
+}
+
+function LogoutButtons() {
+  return (
+    <div className="mt-8 flex gap-2">
       {/* form の action に Server Action を渡すと、JS なしでも POST で呼び出せる */}
-      <form action={logout} className="mt-6">
+      <form action={logout}>
         <Button type="submit" variant="outline">
           ログアウト
         </Button>
       </form>
-    </main>
+      <form action={logoutEverywhere}>
+        <Button type="submit" variant="ghost">
+          全端末からログアウト
+        </Button>
+      </form>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { deleteSessionCookie, getSessionToken, setSessionCookie } from "./cookie";
-import { createSession, deleteSession } from "./session";
+import { createSession, deleteSession, deleteUserSessions } from "./session";
 
 /**
  * ログイン処理の共通部分。認証（本人確認）が済んだユーザーに対して呼ぶ。
@@ -29,5 +29,14 @@ export async function signOut() {
   if (token) {
     await deleteSession(token);
   }
+  await deleteSessionCookie();
+}
+
+/**
+ * 全端末からのログアウト。そのユーザーのセッションをすべて削除し、この端末の Cookie も消す。
+ * 端末をなくしたときなど、自分以外の端末に残っているログイン状態をまとめて無効にするために使う。
+ */
+export async function signOutEverywhere(userId: string) {
+  await deleteUserSessions(userId);
   await deleteSessionCookie();
 }
