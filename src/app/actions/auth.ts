@@ -11,9 +11,13 @@ import { signOut, signOutEverywhere } from "@/server/auth/sign-in";
 // Server Action は画面にボタンがなくても、ID が分かれば誰でも直接呼び出せる公開エンドポイント。
 // 「ログイン中の画面にしかボタンを置いていない」は保護にならないので、権限が必要な処理は中でガードを呼ぶ。
 
+// ログアウト後のログイン画面。LINE アプリ内では LINE に常にログインしているため、
+// 印を付けずに /login を開くと自動ログインでその場でセッションが作り直されてしまう。
+const LOGGED_OUT_URL = "/login?loggedOut=1";
+
 export async function logout() {
   await signOut();
-  redirect("/login");
+  redirect(LOGGED_OUT_URL);
 }
 
 export async function logoutEverywhere() {
@@ -26,5 +30,5 @@ export async function logoutEverywhere() {
       throw error;
     }
   }
-  redirect("/login");
+  redirect(LOGGED_OUT_URL);
 }

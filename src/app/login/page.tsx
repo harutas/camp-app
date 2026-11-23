@@ -4,7 +4,13 @@ import { LiffLogin } from "./liff-login";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ loggedOut?: string }>;
+}) {
+  const { loggedOut } = await searchParams;
+
   // 開発用ログインのためのユーザー一覧。本番では DB を引かない（家族の名前を未ログインの人に見せない）
   const users = isDevelopment ? await prisma.user.findMany({ orderBy: { createdAt: "asc" } }) : [];
 
@@ -13,7 +19,7 @@ export default async function LoginPage() {
       <h1 className="text-2xl font-bold">ログイン</h1>
 
       <section className="mt-6">
-        <LiffLogin />
+        <LiffLogin loggedOut={loggedOut === "1"} />
       </section>
 
       {isDevelopment && (
